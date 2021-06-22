@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- =======================================================================
+        Fichier de configuration du projet Maven
+
+        Abes-hello-back
+     ======================================================================= -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>fr.abes</groupId>
+        <artifactId>abes-spring</artifactId>
+        <version>1.0.7</version>
+    </parent>
+
+    <groupId>fr.abes.noticeMapper</groupId>
+    <artifactId>biblioMapper</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>noticeMapper</name>
+    <description>Librairie de mapping des notices dans différents formats</description>
+
+    <!-- ===================================================== -->
+    <!--     Proprietes du projet                              -->
+    <!-- ===================================================== -->
+    <properties>
+        <finalName>noticeMapper-${project.artifactId}-${project.version}</finalName>
+    </properties>
+
+    <packaging>jar</packaging>
+
+    <!-- =========================================================== -->
+    <!--     Dependances heritees pour tous les modules.             -->
+    <!-- =========================================================== -->
+    <dependencies>
+
+        <!--- === Annotations === -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <!-- === Mapping === -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-xml</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.modelmapper</groupId>
+            <artifactId>modelmapper</artifactId>
+            <version>2.3.5</version>
+        </dependency>
+
+        <!-- === Log === -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-log4j2</artifactId>
+        </dependency>
+
+        <!-- parser xml -->
+        <dependency>
+            <groupId>net.sf.saxon</groupId>
+            <artifactId>saxon</artifactId>
+            <version>8.7</version>
+        </dependency>
+        <dependency>
+            <groupId>net.sf.saxon</groupId>
+            <artifactId>saxon-dom</artifactId>
+            <version>8.7</version>
+        </dependency>
+
+        <!--- === Tests === -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.junit.vintage</groupId>
+                    <artifactId>junit-vintage-engine</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.6</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <distributionManagement>
+        <site>
+            <id>abes</id>
+            <url>${url.doc.abes}doc${doc.root.path}/${doc.root.path}-${project.version}</url>
+        </site>
+    </distributionManagement>
+
+    <repositories>
+        <repository>
+            <id>artifactory-public</id>
+            <name>artifactory-public</name>
+            <url>https://artifactory.abes.fr/artifactory/maven-public/</url>
+        </repository>
+    </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>artifactory-public</id>
+            <name>artifactory-public</name>
+            <url>https://artifactory.abes.fr/artifactory/maven-public/</url>
+        </pluginRepository>
+    </pluginRepositories>
+
+    <!-- =========================================================== -->
+    <!--     Configuration de la compilation                         -->
+    <!-- =========================================================== -->
+    <build>
+        <finalName>${finalName}</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
