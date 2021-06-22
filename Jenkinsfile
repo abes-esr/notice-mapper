@@ -22,7 +22,7 @@ node {
     def gitURL = "https://github.com/abes-esr/notice-mapper.git"
     def gitCredentials = 'Github'
     def slackChannel = "#notif-periscope"
-    def artifactoryBuildName = "biblioNotice"
+    def artifactoryBuildName = "biblioModel"
 
     // **** FIN DE ZONE A EDITER n°1 ****
 
@@ -33,20 +33,16 @@ node {
     def deployArtifactoy = false
     def buildNumber = -1
     def executeDeploy = []
-    def backTargetHostnames = []
-    def batchTargetHostnames = []
 
     // Variables globales
     def ENV
     def maventool
     def rtMaven
-    def mavenProfil
     def artifactoryServer
     def downloadSpec
 
     // Definition des actions
-    def choiceParams = ['Compiler']
-    }
+    def choiceParams = ['Compiler', 'Compiler & Déployer', 'Déployer un précédent build']
 
     // Configuration du job Jenkins
     // On garde les 5 derniers builds par branche
@@ -99,34 +95,23 @@ node {
                 throw new Exception("Variable ACTION is null")
             }
 
-            for (int moduleIndex = 0; moduleIndex < modulesNames.size(); moduleIndex++) { //Pour chaque module du projet
+            if (params.ACTION == 'Compiler') {
+                candidateModules.add("")
+                executeBuild.add(true)
+                executeDeploy.add(false)
+            } else if (params.ACTION == 'Compiler & Déployer') {
+                candidateModules.add("")
+                executeBuild.add(true)
+                executeDeploy.add(true)
+            } else if (params.ACTION == "Déployer un précédent build") {
 
-                if (params.ACTION == 'Compiler') {
-                    candidateModules.add("${modulesNames[moduleIndex]}")
-                    executeBuild.add(true)
-                    executeDeploy.add(false)
-                } else if (params.ACTION == 'Compiler & Déployer') {
-                    candidateModules.add("${modulesNames[moduleIndex]}")
-                    executeBuild.add(true)
-                    executeDeploy.add(true)
-                } else if (params.ACTION == "[${modulesNames[moduleIndex]}] Compiler & Déployer le module") {
-                    candidateModules.add("${modulesNames[moduleIndex]}")
-                    executeBuild.add(true)
-                    executeDeploy.add(true)
-                } else if (params.ACTION == "[${modulesNames[moduleIndex]}] Compiler le module") {
-                    candidateModules.add("${modulesNames[moduleIndex]}")
-                    executeBuild.add(true)
-                    executeDeploy.add(false)
-                } else if (params.ACTION == "Déployer un précédent build" || params.ACTION == "[${modulesNames[moduleIndex]}] Déployer un précédent build") {
-
-                    if (params.BUILD_NUMBER == null || params.BUILD_NUMBER == -1) {
-                        throw new Exception("No build number specified")
-                    }
-                    buildNumber = params.BUILD_NUMBER
-                    candidateModules.add("${modulesNames[moduleIndex]}")
-                    executeBuild.add(false)
-                    executeDeploy.add(true)
+                if (params.BUILD_NUMBER == null || params.BUILD_NUMBER == -1) {
+                    throw new Exception("No build number specified")
                 }
+                buildNumber = params.BUILD_NUMBER
+                candidateModules.add("")
+                executeBuild.add(false)
+                executeDeploy.add(true)
             }
 
             if (candidateModules.size() == 0) {
@@ -186,7 +171,6 @@ node {
             }
         }
     }
-
     for (int moduleIndex = 0; moduleIndex < candidateModules.size(); moduleIndex++) { //Pour chaque module du projet
 
         //-------------------------------
@@ -195,43 +179,11 @@ node {
         if ("${executeBuild[moduleIndex]}" == 'true') {
 
             //-------------------------------
-            // Etape 3.1 : Edition des fichiers de proprietes
-            //-------------------------------
-            stage("[${candidateModules[moduleIndex]}] Edit properties files") {
-                try {
-                    echo "Edition application-${mavenProfil}.properties"
-                    echo "--------------------------"
-
-                    original = readFile "${candidateModules[moduleIndex]}/src/main/resources/application-${mavenProfil}.properties"
-                    newconfig = original
-
-                    // **** DEBUT DE ZONE A EDITER n°2 ****
-
-                    /*
-                      Cette zone permet d'editer les fichiers de proprietes pour les environnements cibles.
-                      C'est ici que l'on insere les donnees sensibles dans les fichiers de proprietes (application.properties)
-                      Les donnees sensibles sont stockees dans Jenkins comme des Credentials de type Secret Text.
-                      A vous d'ajouter dans Jenkins vos credentials de donnees sensensibles et de les remplacer ici
-                     */
-                    }
-
-                    // **** FIN DE ZONE A EDITER n°2 ****
-
-                    writeFile file: "${candidateModules[moduleIndex]}/src/main/resources/application-${mavenProfil}.properties", text: "${newconfig}"
-
-                } catch (e) {
-                    currentBuild.result = hudson.model.Result.FAILURE.toString()
-                    notifySlack(slackChannel, "Failed to edit module ${candidateModules[moduleIndex]} properties files: "+e.getLocalizedMessage())
-                    throw e
-                }
-            }
-
-            //-------------------------------
             // Etape 3.2 : Compilation
             //-------------------------------
             stage("[${candidateModules[moduleIndex]}] Compile package") {
                 try {
-                    sh "'${maventool}/bin/mvn' -Dmaven.test.skip='${!executeTests}' clean package  -pl ${candidateModules[moduleIndex]} -am -P${mavenProfil} -DwarName='${backApplicationFileName}' -DwebBaseDir='${backTargetDir}${backApplicationFileName}'"
+                    sh "'${maventool}/bin/mvn' -Dmaven.test.skip='${!executeTests}' clean package"
                     // ATTENTION #1, rtMaven.run ne tient pas compte des arguments de compilation -D
                     //buildInfo = rtMaven.run pom: 'pom.xml', goals: "clean package -Dmaven.test.skip=${!executeTests} -pl ${candidateModules[moduleIndex]} -am -P${mavenProfil} -DfinalName=${backApplicationFileName} -DwebBaseDir=${backTargetDir}${backApplicationFileName} -DbatchBaseDir=${batchTargetDir}${backApplicationFileName}".toString()
 
@@ -243,7 +195,7 @@ node {
             }
         }
 
-        if ( deployArtifactoy && "${executeBuild[moduleIndex]}" == 'true') {
+        if (deployArtifactoy && "${executeBuild[moduleIndex]}" == 'true') {
 
             //-------------------------------
             // Etape 3.3 : Deploiement sur Artifactory
@@ -251,7 +203,7 @@ node {
             stage("[${candidateModules[moduleIndex]}] Archive to Artifactory") {
                 try {
                     rtMaven.deployer server: artifactoryServer, releaseRepo: 'libs-release-local', snapshotRepo: 'libs-snapshot-local'
-                    buildInfo = rtMaven.run pom: 'pom.xml', goals: "clean package -Dmaven.test.skip=${!executeTests} -P${mavenProfil} -DwarName=${backApplicationFileName} -DwebBaseDir=${backTargetDir}${backApplicationFileName}".toString()
+                    buildInfo = rtMaven.run pom: 'pom.xml', goals: "clean package -Dmaven.test.skip=${!executeTests}".toString()
                     buildInfo.name = "${artifactoryBuildName}"
                     rtMaven.deployer.deployArtifacts buildInfo
                     artifactoryServer.publishBuildInfo buildInfo
@@ -259,73 +211,6 @@ node {
                 } catch (e) {
                     currentBuild.result = hudson.model.Result.FAILURE.toString()
                     notifySlack(slackChannel, "Failed to deploy and publish module ${candidateModules[moduleIndex]} to Artifactory: " + e.getLocalizedMessage())
-                    throw e
-                }
-            }
-        }
-
-        //-------------------------------
-        // Etape 4 : Deploiement
-        //-------------------------------
-        if ("${executeDeploy[moduleIndex]}" == 'true') {
-
-            if(buildNumber != -1) {
-
-                //-------------------------------
-                // Etape 4.0 : On recupere depuis Artifactory
-                //-------------------------------
-                try {
-                    // On clean l'espace de travail
-                    sh("${maventool}/bin/mvn clean")
-                    sh("mkdir -p ${candidateModules[moduleIndex]}/target")
-
-                    if ("${candidateModules[moduleIndex]}" == 'web') {
-
-                        downloadSpec = """{
-                         "files": [
-                          {
-                              "aql": {
-                                    "items.find": {
-                                    "archive.item.artifact.module.build.name": {"\$eq":"${artifactoryBuildName}"},
-                                    "archive.item.artifact.module.build.number":{"\$eq":"${buildNumber}"},
-                                    "name":{"\$match":"${candidateModules[moduleIndex]}*.war"}
-                                    }
-                                },
-                              "target": "${candidateModules[moduleIndex]}/target/",
-                              "flat": true
-                            }
-                         ]
-                        }"""
-
-                        artifactoryServer.download spec: downloadSpec
-                        // Suite au bug #1, on renomme le war
-                        sh("mv ${candidateModules[moduleIndex]}/target/*.war ${candidateModules[moduleIndex]}/target/${backApplicationFileName}.war")
-                    }
-
-                    if ("${candidateModules[moduleIndex]}" == 'batch') {
-
-                        downloadSpec = """{
-                         "files": [
-                          {
-                              "aql": {
-                                    "items.find": {
-                                    "archive.item.artifact.module.build.name": {"\$eq":"${artifactoryBuildName}"},
-                                    "archive.item.artifact.module.build.number":{"\$eq":"${buildNumber}"},
-                                    "name":{"\$match":"${candidateModules[moduleIndex]}*.jar"}
-                                    }
-                                },
-                              "target": "${candidateModules[moduleIndex]}/target/",
-                              "flat": true
-                            }
-                         ]
-                        }"""
-
-                        artifactoryServer.download spec: downloadSpec
-                    }
-
-                } catch (e) {
-                    currentBuild.result = hudson.model.Result.FAILURE.toString()
-                    notifySlack(slackChannel, "Failed to retrieve module ${candidateModules[moduleIndex]} from Artifactory: " + e.getLocalizedMessage())
                     throw e
                 }
             }

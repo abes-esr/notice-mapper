@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- =======================================================================
         Fichier de configuration du projet Maven
-
-        Abes-hello-back
      ======================================================================= -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -14,8 +12,8 @@
         <version>1.0.7</version>
     </parent>
 
-    <groupId>fr.abes.noticeMapper</groupId>
-    <artifactId>biblioMapper</artifactId>
+    <groupId>fr.abes.model</groupId>
+    <artifactId>biblioModel</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>noticeMapper</name>
     <description>Librairie de mapping des notices dans différents formats</description>
@@ -24,7 +22,7 @@
     <!--     Proprietes du projet                              -->
     <!-- ===================================================== -->
     <properties>
-        <finalName>noticeMapper-${project.artifactId}-${project.version}</finalName>
+        <finalName>biblioModel-${project.artifactId}-${project.version}</finalName>
     </properties>
 
     <packaging>jar</packaging>
@@ -41,10 +39,6 @@
             <scope>provided</scope>
         </dependency>
 
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-        </dependency>
         <!-- === Mapping === -->
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
